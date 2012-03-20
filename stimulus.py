@@ -10,15 +10,15 @@ class stimulus(object):
       def __init__(self,main):
           self.main=ny.ones((main, main, 3))
 
-      def square(self, size):
-          for s in ny.arange(2,3+size):
-              self.main[2,s]=ny.zeros(3)
-              self.main[s,2]=ny.zeros(3)
-              self.main[2+size,s]=ny.zeros(3)
-              self.main[s,2+size]=ny.zeros(3)
+      def square(self, size, start):
+          for s in ny.arange(start,start+1+size):
+              self.main[start,s]=ny.zeros(3)
+              self.main[s,start]=ny.zeros(3)
+              self.main[start+size,s]=ny.zeros(3)
+              self.main[s,start+size]=ny.zeros(3)
           return self.main
 
 #stimulus(main), pic.square(size)
 pic = stimulus(30)
-pp.imshow(pic.square(4))
+pp.imshow(pic.square(4,6))
 pp.show()
