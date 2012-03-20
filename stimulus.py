@@ -19,6 +19,7 @@ class stimulus(object):
           return self.main
 
 #stimulus(main size of stimulus picture), pic.square(size,starting point)
-pic = stimulus(30)
-pp.imshow(pic.square(4,6))
+background = stimulus(30)
+pic = background.square(4,2)
+pp.imshow(pic)
 pp.show()
