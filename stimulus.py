@@ -9,7 +9,6 @@ class stimulus(object):
 
       def __init__(self,main):
           self.main=ny.ones((main, main, 3))
-          #return pp.imshow(self.main)
 
       def square(self, size):
           for s in ny.arange(2,2+size):
@@ -17,8 +16,9 @@ class stimulus(object):
               self.main[s,2]=ny.zeros(3)
               self.main[2+size,s]=ny.zeros(3)
               self.main[s,2+size]=ny.zeros(3)
-          return pp.imshow(self.main)
+          return self.main
 
 #stimulus(main), pic.square(size)
 pic = stimulus(30)
-print pic.square(4)
+pp.imshow(pic.square(4))
+pp.show()
