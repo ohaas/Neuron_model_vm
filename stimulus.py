@@ -1,25 +1,21 @@
 __author__ = 'ohaas'
 
-import numpy as ny
+import Image, ImageDraw
 import matplotlib.pyplot as pp
 
-class stimulus(object):
+class image(object):
       pass
 
+      def __init__(self,main_size,square_size,start):
+          self.i=Image.new("1",(main_size,main_size),1)
+          draw = ImageDraw.Draw(self.i)
+          draw.line(((start,start),(start+1+square_size, start),(start+1+square_size,start+1+square_size),(start, start+1+square_size),(start,start)), fill=0)
+          pp.imshow(self.i, interpolation="nearest")
 
-      def __init__(self,main):
-          self.main=ny.ones((main, main, 1))
+      def pix_value(self,x,y):
+          return self.i.getpixel((x,y))
 
-      def square(self, size, start):
-          for s in ny.arange(start,start+3+size):
-              self.main[start,s]=ny.zeros(1)
-              self.main[s,start]=ny.zeros(1)
-              self.main[start+size,s]=ny.zeros(1)
-              self.main[s,start+size]=ny.zeros(1)
-          return self.main
+      def show_im(self):
+          pp.imshow(self.i,interpolation="nearest")
+          pp.show()
 
-#stimulus(main size of stimulus picture), pic.square(size,starting point)
-#background = stimulus(30)
-#pic = background.square(4,2)
-#pp.imshow(pic)
-#pp.show()
