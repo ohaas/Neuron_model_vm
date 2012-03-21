@@ -11,7 +11,7 @@ class stimulus(object):
           self.main=ny.ones((main, main, 1))
 
       def square(self, size, start):
-          for s in ny.arange(start,start+1+size):
+          for s in ny.arange(start,start+3+size):
               self.main[start,s]=ny.zeros(1)
               self.main[s,start]=ny.zeros(1)
               self.main[start+size,s]=ny.zeros(1)
