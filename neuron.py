@@ -13,7 +13,9 @@ def gauss(mu, sigma, x , A) :
 
 # mu IS WHERE THE MAXIMUM IS LOCATED, SIGMA SQUARED IS THE WIDTH AND A IS THE AMPLITUDE
 x = ny.arange( 0.0, 360.0, 0.1 )
-y = gauss( 50.0, 10.0, x , 1)
+y = gauss( 260.0, 10.0, x , 1)
 pp.plot(x,y)
 pp.xlim(0,360)
+pp.xlabel('Spatial orientation in degree')
+pp.ylabel('Amplitude of neuronal activation')
 pp.show()
