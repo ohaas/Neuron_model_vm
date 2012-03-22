@@ -3,6 +3,7 @@ __author__ = 'ohaas'
 import numpy as ny
 #import matplotlib.pyplot as pp
 import stimulus
+import neuron
 
 class Population(object):
     pass
@@ -31,15 +32,29 @@ ur=stimulus.image.ur_corner(I)
 ul=stimulus.image.ul_corner(I)
 
 
+# NEURONAL RESPONSES FOR NEURONS neuron.N(maximum_location_in_degrees, activation_width, read_out_point_in_degrees, Amplitude)
+Neuron1=neuron.N(0.0,10.0, 1)
+Neuron2=neuron.N(45.0,10.0, 1)
+Neuron3=neuron.N(90.0,10.0, 1)
+Neuron4=neuron.N(135.0,10.0, 1)
+Neuron5=neuron.N(180.0,10.0, 1)
+Neuron6=neuron.N(225.0,10.0, 1)
+Neuron7=neuron.N(270.0,10.0, 1)
+Neuron8=neuron.N(315.0,10.0, 1)
+
+# NEURONAL ACTIVITY AT POINT X IN DEGREES E.G.: neuron.N.activity(Neuron1,X)
+
 pop=ny.zeros((main_size, main_size, 8))
 pop_no=ny.zeros(8)
+pop_corner=(neuron.N.activity(Neuron1,315.0), neuron.N.activity(Neuron2,315.0), neuron.N.activity(Neuron3,315.0), neuron.N.activity(Neuron4,315.0), neuron.N.activity(Neuron5,315.0), neuron.N.activity(Neuron6,315.0), neuron.N.activity(Neuron7,315.0), neuron.N.activity(Neuron8,315.0))
+pop_horizontal=(neuron.N.activity(Neuron1,270.0), neuron.N.activity(Neuron2,270.0), neuron.N.activity(Neuron3,270.0), neuron.N.activity(Neuron4,270.0), neuron.N.activity(Neuron5,270.0), neuron.N.activity(Neuron6,270.0), neuron.N.activity(Neuron7,270.0), neuron.N.activity(Neuron8,270.0))
+pop_vertical=(neuron.N.activity(Neuron1,0.0), neuron.N.activity(Neuron2,0.0), neuron.N.activity(Neuron3,0.0), neuron.N.activity(Neuron4,0.0), neuron.N.activity(Neuron5,0.0), neuron.N.activity(Neuron6,0.0), neuron.N.activity(Neuron7,0.0), neuron.N.activity(Neuron8,0.0))
+print pop_vertical, pop_horizontal, pop_corner
 
-pop_corner=(0,1,2,3,2,1,0,0)
-pop_horizontal=(3,2,1,0,0,0,1,2)
-pop_vertical=(0,0,0,1,2,3,2,1)
+# ASSIGNS A POPULATION CODE FOR EACH PIXEL IN THE IMAGE I:
 
-for x in ny.arange(0,main_size):
-    for y in ny.arange(0,main_size):
+for x in ny.arange(0.0,main_size):
+    for y in ny.arange(0.0,main_size):
         p=stimulus.image.pix_value(I,x,y)
         if p==1:
             pop[x,y]=pop_no
@@ -50,6 +65,6 @@ for x in ny.arange(0,main_size):
         else:
             pop[x,y]=pop_vertical
 
-
+#print pop[2,8,:]
 
 
