@@ -1,70 +1,102 @@
 __author__ = 'ohaas'
 
 import numpy as ny
-#import matplotlib.pyplot as pp
+import matplotlib.pyplot as pp
 import stimulus
 import neuron
+#import Image, ImageDraw
 
 class Population(object):
     pass
 
+    # main_size= IMAGE SIZE SQUARED (main_size x main_size), square_size=STIMULUS SIZE SQUARED,
+    # start=STIMULUS STARTING POINT SQUARED (lower left stimulus corner), gauss_width= WIDTH OF NEURONAL GAUSS TUNING CURVE
 
-#---- TO CREATE IMAGE STIMULUS (I) WITH IMAGE SIZE 30, STIMULUS SIZE 6 AND START POINT 2
-#    (ALL NUMBERS ARE USED IN A SQUARED FASHION, E.G. IMAGE SIZE 30 MEANS: 30x30)-----------------
-#
-main_size=30
-square_size=6
-start=2
-I = stimulus.image(main_size,square_size,start)
+    def __init__(self, main_size, square_size, start, gauss_width):
+        self.main_size=main_size
+        self.square_size=square_size
+        self.start=start
+        self.I=stimulus.image(main_size,square_size,start)
 
-#---- TO SHOW THE STIMULUS IMAGE (I):-------------------------------------------------------------
+        #---- GET STIMULUS CORNERS, WITH ll=LOWER LEFT, lr=LOWER RIGHT, ur=UPPER RIGHT, ul=UPPER LEFT
+        
+        self.ll=stimulus.image.ll_corner(self.I)
+        self.lr=stimulus.image.lr_corner(self.I)
+        self.ur=stimulus.image.ur_corner(self.I)
+        self.ul=stimulus.image.ul_corner(self.I)
+        self.width=gauss_width
 
-#stimulus.image.show_im(I)
+        # NEURONAL RESPONSES FOR NEURONS neuron.N(maximum_location_in_degrees, activation_width, read_out_point_in_degrees, Amplitude)
 
-#---- TO PRINT A PIXEL VALUE OF THE STIMULUS IMAGE (I) AT (X,Y)=(5,6); 1=white; 0=black------------
+        Neuron0=neuron.N(0.0,self.width, 1)
+        Neuron1=neuron.N(45.0,self.width, 1)
+        Neuron2=neuron.N(90.0,self.width, 1)
+        Neuron3=neuron.N(135.0,self.width, 1)
+        Neuron4=neuron.N(180.0,self.width, 1)
+        Neuron5=neuron.N(225.0,self.width, 1)
+        Neuron6=neuron.N(270.0,self.width, 1)
+        Neuron7=neuron.N(315.0,self.width, 1)
 
-#print stimulus.image.pix_value(I,6,6)
+        # NEURONAL ACTIVITY AT POINT X IN DEGREES E.G.: neuron.N.activity(Neuron1,X)
 
-#---- GET STIMULUS CORNERS, WITH ll=LOWER LEFT, lr=LOWER RIGHT, ur=UPPER RIGHT, ul=UPPER LEFT
-ll=stimulus.image.ll_corner(I)
-lr=stimulus.image.lr_corner(I)
-ur=stimulus.image.ur_corner(I)
-ul=stimulus.image.ul_corner(I)
+        self.pop=ny.zeros((main_size, main_size, 8))
+        pop_no=ny.zeros(8)
+        pop_corner=(neuron.N.activity(Neuron0,45.0), neuron.N.activity(Neuron1,45.0), neuron.N.activity(Neuron2,45.0), neuron.N.activity(Neuron3,45.0), neuron.N.activity(Neuron4,45.0), neuron.N.activity(Neuron5,45.0), neuron.N.activity(Neuron6,45.0), neuron.N.activity(Neuron7,45.0))
+        pop_vertical=(neuron.N.activity(Neuron0,90.0), neuron.N.activity(Neuron1,90.0), neuron.N.activity(Neuron2,90.0), neuron.N.activity(Neuron3,90.0), neuron.N.activity(Neuron4,90.0), neuron.N.activity(Neuron5,90.0), neuron.N.activity(Neuron6,90.0), neuron.N.activity(Neuron7,90.0))
+        pop_horizontal=(neuron.N.activity(Neuron0,0.0), neuron.N.activity(Neuron1,0.0), neuron.N.activity(Neuron2,0.0), neuron.N.activity(Neuron3,0.0), neuron.N.activity(Neuron4,0.0), neuron.N.activity(Neuron5,0.0), neuron.N.activity(Neuron6,0.0), neuron.N.activity(Neuron7,0.0))
+
+        # ASSIGNS A POPULATION CODE FOR EACH PIXEL IN THE IMAGE I:
+
+        for x in ny.arange(0.0,main_size):
+            for y in ny.arange(0.0,main_size):
+                p=stimulus.image.pix_value(self.I,x,y)
+                if p==1:
+                    self.pop[x,y]=pop_no
+                elif (x,y)==self.ll or (x,y)==self.lr or (x,y)==self.ur or (x,y)==self.ul: #corners
+                    self.pop[x,y]=pop_corner
+                elif (x,y)==(x,start) or (x,y)==(x,start+square_size+1): #horizontal line
+                    self.pop[x,y]=pop_horizontal
+                else:
+                    self.pop[x,y]=pop_vertical
+
+    #---- TO SHOW THE STIMULUS IMAGE (I):-------------------------------------------------------------
+
+    def show_stimulus(self):
+        return stimulus.image.show_im(self.I)
 
 
-# NEURONAL RESPONSES FOR NEURONS neuron.N(maximum_location_in_degrees, activation_width, read_out_point_in_degrees, Amplitude)
-Neuron1=neuron.N(0.0,10.0, 1)
-Neuron2=neuron.N(45.0,10.0, 1)
-Neuron3=neuron.N(90.0,10.0, 1)
-Neuron4=neuron.N(135.0,10.0, 1)
-Neuron5=neuron.N(180.0,10.0, 1)
-Neuron6=neuron.N(225.0,10.0, 1)
-Neuron7=neuron.N(270.0,10.0, 1)
-Neuron8=neuron.N(315.0,10.0, 1)
+    # ASSIGN EVERY PIXEL IN THE IMAGE I A CORRESPONDING VECTOR BASED ON ITS POPULATION CODE
 
-# NEURONAL ACTIVITY AT POINT X IN DEGREES E.G.: neuron.N.activity(Neuron1,X)
+    def show_vectors(self):
+        vec=ny.matrix(((0,1), (1,1), (1,0), (1,-1), (0,-1), (-1,-1), (-1,0), (-1,1)))
+        for x in ny.arange(0.0,self.main_size):
+            for y in ny.arange(0.0,self.main_size):
+                p=stimulus.image.pix_value(self.I,x,y)
+                if p!=1 and x%2==0 and (x,y)==(x,self.start) or p!=1 and x%2==0 and (x,y)==(x,self.start+self.square_size+1) or p!=1 and y%2==0 and (x,y)==(self.start,y) or p!=1 and y%2==0 and (x,y)==(self.start+self.square_size+1,y) or (x,y)==self.ll or (x,y)==self.lr or (x,y)==self.ur or (x,y)==self.ul:
+                    multiple=ny.multiply(self.pop[x,y,:],ny.transpose(vec))
+                    x1=ny.sum(multiple[0,:])
+                    y1=ny.sum(multiple[1,:])
+                    stimulus.image.daw__line_to_image(self.I,x,y,10*x1,10*y1)
+                else:
+                    pass
 
-pop=ny.zeros((main_size, main_size, 8))
-pop_no=ny.zeros(8)
-pop_corner=(neuron.N.activity(Neuron1,315.0), neuron.N.activity(Neuron2,315.0), neuron.N.activity(Neuron3,315.0), neuron.N.activity(Neuron4,315.0), neuron.N.activity(Neuron5,315.0), neuron.N.activity(Neuron6,315.0), neuron.N.activity(Neuron7,315.0), neuron.N.activity(Neuron8,315.0))
-pop_horizontal=(neuron.N.activity(Neuron1,270.0), neuron.N.activity(Neuron2,270.0), neuron.N.activity(Neuron3,270.0), neuron.N.activity(Neuron4,270.0), neuron.N.activity(Neuron5,270.0), neuron.N.activity(Neuron6,270.0), neuron.N.activity(Neuron7,270.0), neuron.N.activity(Neuron8,270.0))
-pop_vertical=(neuron.N.activity(Neuron1,0.0), neuron.N.activity(Neuron2,0.0), neuron.N.activity(Neuron3,0.0), neuron.N.activity(Neuron4,0.0), neuron.N.activity(Neuron5,0.0), neuron.N.activity(Neuron6,0.0), neuron.N.activity(Neuron7,0.0), neuron.N.activity(Neuron8,0.0))
-print pop_vertical, pop_horizontal, pop_corner
+        stimulus.image.show_im(self.I)
 
-# ASSIGNS A POPULATION CODE FOR EACH PIXEL IN THE IMAGE I:
 
-for x in ny.arange(0.0,main_size):
-    for y in ny.arange(0.0,main_size):
-        p=stimulus.image.pix_value(I,x,y)
-        if p==1:
-            pop[x,y]=pop_no
-        elif (x,y)==ll or (x,y)==lr or (x,y)==ur or (x,y)==ul: #corners
-            pop[x,y]=pop_corner
-        elif (x,y)==(x,start) or (x,y)==(x,start+square_size): #horizontal line
-            pop[x,y]=pop_horizontal
-        else:
-            pop[x,y]=pop_vertical
 
-#print pop[2,8,:]
 
+    # PLOT POPULATION CODE FOR ALL PIXELS:
+
+    def plot_pop(self):
+        for a in ny.arange(0,self.main_size):
+            for b in ny.arange(0,self.main_size):
+                pp.plot(self.pop[a,b,:])
+        pp.xlabel('Neuron number')
+        pp.ylabel('Neuronal activation')
+        pp.show()
+
+    # PRINT POPULATION CODE AT PIXEL-POINT X,Y: pop[X,Y,:]
+
+    def print_pop(self, x, y):
+        print self.pop[x,y,:]
 
