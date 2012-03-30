@@ -19,14 +19,14 @@ class Population(object):
         self.I=stimulus.image(main_size,square_size,start)
 
         #---- GET STIMULUS CORNERS, WITH ll=LOWER LEFT, lr=LOWER RIGHT, ur=UPPER RIGHT, ul=UPPER LEFT
-        
+
         self.ll=stimulus.image.ll_corner(self.I)
         self.lr=stimulus.image.lr_corner(self.I)
         self.ur=stimulus.image.ur_corner(self.I)
         self.ul=stimulus.image.ul_corner(self.I)
         self.width=gauss_width
 
-        # NEURONAL RESPONSES FOR NEURONS neuron.N(maximum_location_in_degrees, activation_width, read_out_point_in_degrees, Amplitude)
+        # NEURONAL RESPONSES FOR NEURONS neuron.N(maximum_location_in_degrees, activation_width, Amplitude)
 
         Neuron0=neuron.N(0.0,self.width, 1)
         Neuron1=neuron.N(45.0,self.width, 1)
@@ -97,6 +97,21 @@ class Population(object):
 
     # PRINT POPULATION CODE AT PIXEL-POINT X,Y: pop[X,Y,:]
 
-    def print_pop(self, x, y):
+    def print_pop_xy(self, x, y):
         print self.pop[x,y,:]
+
+    # RETURN POPULATION CODE
+
+    def print_pop(self):
+         return self.pop[:,:,:]
+
+
+
+
+
+
+
+
+
+
 
