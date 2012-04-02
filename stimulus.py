@@ -22,15 +22,19 @@ class image(object):
           pp.imshow(self.i,interpolation="nearest")
           pp.show()
 
+      @property
       def ll_corner(self):
           return self.ll
 
+      @property
       def ul_corner(self):
           return self.ul
 
+      @property
       def lr_corner(self):
           return self.lr
 
+      @property
       def ur_corner(self):
           return self.ur
 
@@ -38,3 +42,6 @@ class image(object):
           draw1 = ImageDraw.Draw(self.i)
           draw1.line(((x,y),(x+x1,y+y1)), fill=0)
 
+if __name__ == '__main__':
+    im=image(30,6,2)
+    im.show_im()
