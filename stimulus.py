@@ -2,6 +2,7 @@ __author__ = 'ohaas'
 
 import Image, ImageDraw
 import matplotlib.pyplot as pp
+from matplotlib.patches import FancyBboxPatch as fbp
 
 class image(object):
 
@@ -13,14 +14,19 @@ class image(object):
           self.lr=(start+1+square_size, start)
           self.ur=(start+1+square_size,start+1+square_size)
           draw.line((self.ll,self.lr,self.ur,self.ul,self.ll), fill=0)
+          self.main_size=main_size
+          self.square_size=square_size
+          self.start=start
           #pp.imshow(self.i, interpolation="nearest")
 
       def pix_value(self,x,y):
           return self.i.getpixel((x,y))
 
-      def show_im(self):
-          pp.imshow(self.i,interpolation="nearest")
-          pp.show()
+      def pic(self):
+          ax=pp.gca()
+          pp.axis([0,self.main_size,0, self.main_size])
+          ax.add_patch(fbp((self.start,self.start), self.square_size,self.square_size, boxstyle="square,pad=0.", facecolor='none', linewidth=4))
+
 
       @property
       def ll_corner(self):
@@ -43,5 +49,6 @@ class image(object):
           draw1.line(((x,y),(x+x1,y+y1)), fill=0)
 
 if __name__ == '__main__':
-    im=image(30,6,2)
-    im.show_im()
+    im=image(20,8,5)
+    im.pic()
+    pp.show()

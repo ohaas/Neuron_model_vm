@@ -3,7 +3,6 @@ __author__ = 'ohaas'
 import numpy as ny
 import matplotlib.pyplot as pp
 import pop_code as pc
-import neuron
 from matplotlib.mlab import bivariate_normal
 from scipy.signal import convolve2d
 import ConfigParser as cp
@@ -27,12 +26,14 @@ class Stage(object):
 
     def do_v2(self, v1_t):
 
-        if not len (self.Gx):
-            return v1_t**2
+        x = v1_t**2
 
-        v2_t = v1_t
-        for n in ny.arange(0, 8):
-            v2_t[:,:,n] = convolve2d (v2_t[:,:,n]**2, self.Gx, 'same')
+        if not len (self.Gx):
+            return x
+
+        v2_t = ny.zeros_like (v1_t)
+        for n in ny.arange(0, v1_t.shape[2]):
+            v2_t[:,:,n] = convolve2d (x[:,:,n], self.Gx, 'same')
 
         return v2_t
 
@@ -49,7 +50,9 @@ class Stage(object):
 
 class Model(object):
 
-    def __init__(self, cfg_file):
+    def __init__(self, cfg_file, feedback=True):
+
+        self.do_feedback = feedback
 
         cfg = cp.RawConfigParser()
 
@@ -68,68 +71,109 @@ class Model(object):
         mt_kernel_size =  cfg.getfloat('MT', 'kernel_size')
         mt_kernel_res =  cfg.getfloat('MT', 'kernel_res')
 
+        self.mt_gauss = get_gauss_kernel(mt_kernel_sigma, mt_kernel_size, mt_kernel_res)
+
         self.V1 = Stage([], v1_C)
-        self.MT = Stage(get_gauss_kernel(mt_kernel_sigma, mt_kernel_size, mt_kernel_res), 0)
+        self.MT = Stage(self.mt_gauss, 0)
+
+
+    def show_mt_gauss(self):
+        pp.figure(1)
+        pp.imshow(self.mt_gauss, interpolation='nearest')
 
     def create_input(self):
         """
         definition of initial population codes for different time steps (is always the same one!!!)
         """
-        pop_code=ny.zeros((self.main_size, self.main_size, 8, self.time_frames))
-        start = self.start
-        for i in ny.arange(0, self.time_frames):
-            j = pc.Population(self.main_size, self.square_size, start, self.gauss_width)
-            pop_code[:,:,:,i] = j.print_pop(j.initial_pop_code())
-            start=ny.add(self.start, self.delta_t)
+        I = ny.zeros((self.main_size, self.main_size, 8, self.time_frames+1))
+        cur_frame = self.start
+        for i in ny.arange(0, self.time_frames+1):
+            j = pc.Population(self.main_size, self.square_size, cur_frame, self.gauss_width)
+            I[:,:,:,i] = j.initial_pop_code()
+            cur_frame += self.delta_t
+            #j.show_vectors(I[:,:,:,i])
+        return I
 
-        return pop_code
 
+    def run_model_full(self):
+        self.input = self.create_input()
 
-    def run_model_full(self, t):
-        p = pc.Population(self.main_size, self.square_size, self.start, self.gauss_width)
-
-        input = self.create_input()
-
-        X = ny.zeros((self.main_size, self.main_size, 8, t))
-        X[:,:,:, 0] = p.initial_pop_code()
+        X = ny.zeros((self.main_size, self.main_size, 8, self.time_frames+1))
+        X[:,:,:, 0] = self.input[:,:,:,0]
 
         fb = 0
-        for d_t in ny.arange(1, t):
-            inp = input[:,:,:,d_t-1]
+        for d_t in ny.arange(1, self.time_frames+1):
+
+            inp = self.input[:,:,:,d_t-1]
             v1 = self.V1.do_all(inp, fb)
             mt = self.MT.do_all(v1, 0)
             X[:,:,:, d_t] = mt
 
-            fb = mt # new feedback is old output
+
+            if self.do_feedback:
+                fb = mt # new feedback is old output
 
         return X
 
 
     def integrated_motion_direction(self):
-        start = self.start
-        self.h_v_edges = ny.zeros((self.time_frames,2))
 
-        X = self.run_model_full (self.time_frames)
+        #fig = pp.figure()
+        h_v_edges = ny.zeros((self.time_frames+1,2))
+        self.cur_frame = self.start
+        X = self.run_model_full ()
 
-        for i in ny.arange(0,self.time_frames):
-            j=pc.Population(self.main_size, self.square_size, start, self.gauss_width)
-            pop_c = X[:,:,:,i]
-            self.h_v_edges[i,:]=j.create_vectors(pop_c)
+        for i in ny.arange(0,self.time_frames+1):
 
-            pp.plot(i,self.h_v_edges[i,0],'k+')
-            pp.plot(i,self.h_v_edges[i,1],'k*')
-            start=ny.add(self.start, self.delta_t)
-            print self.h_v_edges[i,0], self.h_v_edges[i,1]
+            pop = pc.Population(self.main_size, self.square_size, self.cur_frame, self.gauss_width)
+            pp.figure(1)
+            pp.imshow(self.mt_gauss, interpolation='nearest')
+            pp.xlabel('Pixel')
+            pp.ylabel('Pixel')
+           # pp.suptitle('Spatial Kernel with sigma = %d, size= %d and resolution = %d' %)
 
-        x=ny.arange(-0.2,self.time_frames)
+            if i>0:
+                pp.figure(2)
+                pop.show_vectors(self.input[:,:,:,i-1])
+                pp.xlabel('Pixel')
+                pp.ylabel('Pixel')
+                pp.suptitle('Model input population code')
+                pp.figure(3)
+                pop.show_vectors(X[:,:,:,i])
+                pp.xlabel('Pixel')
+                pp.ylabel('Pixel')
+                pp.suptitle('Model output population code')
+
+            else:
+                pp.figure(2)
+                pop.show_vectors(self.input[:,:,:,i])
+                pp.xlabel('Pixel')
+                pp.ylabel('Pixel')
+                pp.suptitle('Model input population code')
+
+            h_v_edges[i,:]= pop.show_vectors(X[:,:,:,i],all=False)
+            pp.figure(4)
+            pp.plot(i, h_v_edges[i,0],'ko', markerfacecolor='None')
+            pp.plot(i, h_v_edges[i,1],'k*')
+            print h_v_edges[i,0],h_v_edges[i,1]
+
+            if i>0:
+                self.cur_frame += self.delta_t
+
+        x=ny.arange(-0.2,self.time_frames+1)
         y=0*x+45
         pp.plot(x,y)
         pp.xlim(-0.2,self.time_frames+0.2)
         pp.ylim(-1,91)
+        pp.xlabel('Time steps (cycles through the model)')
+        pp.ylabel('Direction (degree)')
+        pp.suptitle('Integrated motion direction')
 
 if __name__ == '__main__':
 
-    M = Model('model.cfg')
+    M = Model('model.cfg', feedback=False) # feedback=True
+    #M.show_mt_gauss()
     M.integrated_motion_direction()
+    #M.run_model_full()
     pp.show()
 

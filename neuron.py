@@ -35,23 +35,9 @@ class N(object):
 
 if __name__ == '__main__':
     width=30
-    Neuron0=N(0.0,width)
-    Neuron1=N(45.0,width)
-    Neuron2=N(90.0,width)
-    Neuron3=N(135.0,width)
-    Neuron4=N(180.0,width)
-    Neuron5=N(225.0,width)
-    Neuron6=N(270.0,width)
-    Neuron7=N(315.0,width)
-    #a=N.activity(Neuron1, 10.0)
-    #print(a)
-    N.plot_act(Neuron0)
-    N.plot_act(Neuron1)
-    N.plot_act(Neuron2)
-    N.plot_act(Neuron3)
-    N.plot_act(Neuron4)
-    N.plot_act(Neuron5)
-    N.plot_act(Neuron6)
-    N.plot_act(Neuron7)
+    angle = ny.arange(0.0, 360, 45.0)
+    neurons = [N(degree, width) for degree in angle]
+    for i in ny.arange(0,len(angle)):
+        N.plot_act(neurons[i])
     pp.show()
 

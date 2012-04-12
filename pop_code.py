@@ -2,6 +2,7 @@ __author__ = 'ohaas'
 
 import numpy as ny
 import matplotlib.pyplot as pp
+from matplotlib.patches import FancyArrowPatch as fap
 import stimulus
 import neuron
 
@@ -20,89 +21,74 @@ class Population(object):
         self.I = stimulus.image(main_size,square_size,start)
         self.width=gauss_width
 
+        self.vec = ny.matrix(((0,1), (1,1), (1,0), (1,-1), (0,-1), (-1,-1), (-1,0), (-1,1)))
 
-    def initial_pop_code(self):
-        """
-        ASSIGNS A POPULATION CODE FOR EACH PIXEL IN THE IMAGE I
-        """
-
-        #1) NEURONAL RESPONSES FOR NEURONS neuron.N(maximum_location_in_degrees, activation_width, Amplitude=1)
-
-
+        #1) NEURONAL RESPONSES FOR NEURONS neuron.N(maximum_location_in_degrees, activation_width, Amplitude=1):
         angle = ny.arange(0.0, 360, 45.0)
         neurons = [neuron.N(degree, self.width) for degree in angle]
 
         #2) NEURONAL ACTIVITY AT POINT X IN DEGREES E.G.: neuron.N.activity(Neuron1,X)
-
         self.pop=ny.zeros((self.main_size, self.main_size, 8))
+
         self.pop_no=ny.zeros(8)
         self.pop_corner=[n.activity(45.0) for n in neurons]
         self.pop_vertical=[n.activity(90.0) for n in neurons]
         self.pop_horizontal=[n.activity(0.0) for n in neurons]
+        self.h=ny.arange(self.start+1,self.start+self.square_size+1)
+
+
+    def initial_pop_code(self):
+        pop1=ny.zeros((self.main_size, self.main_size, 8))
 
         for x in ny.arange(0.0, self.main_size):
             for y in ny.arange(0.0, self.main_size):
-                p=stimulus.image.pix_value(self.I,x,y)
-                if p==1:
-                    self.pop[x,y]=self.pop_no
-                elif (x,y)==self.I.ll or (x,y)==self.I.lr or (x,y)==self.I.ur or (x,y)==self.I.ul: #corners
-                    self.pop[x,y]=self.pop_corner
-                elif (x,y)==(x,self.start) or (x,y)==(x,self.start+self.square_size+1): #horizontal line
-                    self.pop[x,y]=self.pop_horizontal
+                if (x,y)==(self.start,self.start) or (x,y)==(self.start,self.start+self.square_size) or (x,y)==(self.start+self.square_size,self.start) or (x,y)==(self.start+self.square_size,self.start+self.square_size):
+                    pop1[x,y,:]=self.pop_corner
+                elif x in self.h and y==self.start or x in self.h and y==self.start+self.square_size: #horizontal line
+                    pop1[x,y,:]=self.pop_horizontal
+                elif y in self.h and x==self.start or y in self.h and x==self.start+self.square_size:
+                    pop1[x,y,:]=self.pop_vertical
                 else:
-                    self.pop[x,y]=self.pop_vertical
-        return self.pop
+                    pop1[x,y,:]=self.pop_no
 
-    def show_stimulus(self):
-        """
-        TO SHOW THE STIMULUS IMAGE (I)
-        """
-        return self.I.show_im()
+        if self.start + self.square_size + 1 > self.main_size:
+            print 'WARNING: Stimulus out of picture'
+
+        return pop1
 
 
-    def show_vectors(self, population_code):
-        """
-         ASSIGN EVERY PIXEL IN THE IMAGE I A CORRESPONDING VECTOR BASED ON ITS POPULATION CODE
-        """
-        vec=ny.matrix(((0,1), (1,1), (1,0), (1,-1), (0,-1), (-1,-1), (-1,0), (-1,1)))
+    def show_vectors(self, population_code, all=True):
+        self.all=all
+        h_v_edges = ny.zeros(2)
         for x in ny.arange(0.0,self.main_size):
             for y in ny.arange(0.0,self.main_size):
-                p=stimulus.image.pix_value(self.I,x,y)
-                if p!=1 and x%2==0 and (x,y)==(x,self.start) or p!=1 and x%2==0 and (x,y)==(x,self.start+self.square_size+1) or p!=1 and y%2==0 and (x,y)==(self.start,y) or p!=1 and y%2==0 and (x,y)==(self.start+self.square_size+1,y) or (x,y)==self.I.ll or (x,y)==self.I.lr or (x,y)==self.I.ur or (x,y)==self.I.ul:
-                    multiple=ny.multiply(population_code[x,y,:],ny.transpose(vec))
-                    x1=ny.sum(multiple[0,:])
-                    y1=ny.sum(multiple[1,:])
-                    stimulus.image.daw__line_to_image(self.I,x,y,10*x1,10*y1)
+                if (x,y)==(self.start,self.start) or (x,y)==(self.start,self.start+self.square_size) or (x,y)==(self.start+self.square_size,self.start) \
+                   or (x,y)==(self.start+self.square_size,self.start+self.square_size) \
+                   or x in self.h and y==self.start or x in self.h and y==self.start+self.square_size \
+                   or y in self.h and x==self.start or y in self.h and x==self.start+self.square_size:
 
-        self.I.show_im()
+                   multiple=ny.multiply(population_code[x,y,:],ny.transpose(self.vec))
+                   x1=ny.sum(multiple[0,:])
+                   y1=ny.sum(multiple[1,:])
 
-    def create_vectors(self, population_code):
-        """
-        CREATES IMAGE VECTORS IN CORRESPONDING 360 DEGREE PLOT AND RETURNS VECOTS IN THE MIDDLE OF THE HORIZONTAL AND VERTICAL EDGES
-        """
-        self.h_v_edges=ny.zeros(2)
-        self.out=ny.zeros((self.main_size,self.main_size,2))
-        vec=ny.matrix(((0,1), (1,1), (1,0), (1,-1), (0,-1), (-1,-1), (-1,0), (-1,1)))
-        for x in ny.arange(0.0,self.main_size):
-            for y in ny.arange(0.0,self.main_size):
-                p=stimulus.image.pix_value(self.I,x,y)
-                if p!=1:
-                    multiple=ny.multiply(population_code[x,y,:],ny.transpose(vec))
-                    x1=ny.sum(multiple[0,:])
-                    y1=ny.sum(multiple[1,:])
-                    self.out[x,y,:]=(x1,y1)
-                    r=ny.sqrt((x1**2)+(y1**2))
-                    x3=ny.arcsin(y1/r)
-                    y3=1
-                    #pp.polar((x3,x3),(0,y3))
-                    if (x,y)==(self.start+self.square_size+1,self.start+(self.square_size/2)):
-                        self.h=x3
-                        self.h_v_edges[0]=self.h*180/ny.pi
-                    elif (x,y)==(self.start+(self.square_size/2),self.start+self.square_size+1):
-                        self.v=x3
-                        self.h_v_edges[1]=self.v*180/ny.pi
-        return self.h_v_edges
-        #pp.show()
+                   if self.all:
+                       ax=pp.gca()
+                       pp.axis([0,self.main_size,0, self.main_size])
+                       ax.add_patch(fap((x,y),((x+(self.square_size/4)*x1/ny.sqrt(x1**2+y1**2)),((y+(self.square_size/4)*y1/ny.sqrt(x1**2+y1**2)))), arrowstyle='->',linewidth=0.5,mutation_scale=10))
+                       self.I.pic() # shows the stimulus
+
+
+                   else:
+                       r=ny.sqrt((x1**2)+(y1**2))
+                       x3=ny.arcsin(y1/r)
+                       if (x,y)==(self.start + self.square_size, self.start + (self.square_size/2)):
+                           h_v_edges[0]=x3*180/ny.pi
+                       elif (x,y)==(self.start + (self.square_size/2), self.start + self.square_size):
+                           h_v_edges[1]=x3*180/ny.pi
+        return h_v_edges
+
+
+
 
     def plot_pop(self, population_code,t):
         """
@@ -116,21 +102,14 @@ class Population(object):
         pp.suptitle('Population code after %d model cycles' %t)
         pp.show()
 
-    def print_pop_xy(self, population_code, x, y):
-        """
-        PRINT POPULATION CODE AT PIXEL-POINT X,Y: pop[X,Y,:]
-        """
-        print population_code[x,y,:]
-
-    # RETURN POPULATION CODE
-
-    def print_pop(self, population_code):
-        return population_code[:,:,:]
 
 
 if __name__ == '__main__':
     p = Population(30, 6, 2, 30)
-    p.create_vectors(p.initial_pop_code())
+    pop=p.initial_pop_code()
+    pop.show_vectors()
+    pp.show()
+
 
 
 
