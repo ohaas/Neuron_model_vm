@@ -34,7 +34,12 @@ class Population(object):
         self.pop_corner=[n.activity(45.0) for n in neurons]
         self.pop_vertical=[n.activity(90.0) for n in neurons]
         self.pop_horizontal=[n.activity(0.0) for n in neurons]
-        self.h=ny.arange(self.start+1,self.start+self.square_size+1)
+        self.h=ny.arange(self.start+2,self.start+self.square_size-1)
+        self.p=(self.start+self.square_size-1,self.start+self.square_size)
+        self.q=(self.start,self.start+1)
+        self.r=(self.start,self.start+self.square_size)
+        self.s=(self.start+1, self.start+self.square_size-1)
+
 
 
     def initial_pop_code(self):
@@ -42,11 +47,11 @@ class Population(object):
 
         for x in ny.arange(0.0, self.main_size):
             for y in ny.arange(0.0, self.main_size):
-                if (x,y)==(self.start,self.start) or (x,y)==(self.start,self.start+self.square_size) or (x,y)==(self.start+self.square_size,self.start) or (x,y)==(self.start+self.square_size,self.start+self.square_size):
+                if x in self.q and y in self.r or x in self.p and y in self.r or x in self.r and y in self.s:
                     pop1[x,y,:]=self.pop_corner
-                elif x in self.h and y==self.start or x in self.h and y==self.start+self.square_size: #horizontal line
+                elif x in self.h and y in self.r: #horizontal line
                     pop1[x,y,:]=self.pop_horizontal
-                elif y in self.h and x==self.start or y in self.h and x==self.start+self.square_size:
+                elif y in self.h and x in self.r:
                     pop1[x,y,:]=self.pop_vertical
                 else:
                     pop1[x,y,:]=self.pop_no
@@ -62,16 +67,17 @@ class Population(object):
         h_v_edges = ny.zeros(2)
         for x in ny.arange(0.0,self.main_size):
             for y in ny.arange(0.0,self.main_size):
-                if (x,y)==(self.start,self.start) or (x,y)==(self.start,self.start+self.square_size) or (x,y)==(self.start+self.square_size,self.start) \
-                   or (x,y)==(self.start+self.square_size,self.start+self.square_size) \
-                   or x in self.h and y==self.start or x in self.h and y==self.start+self.square_size \
-                   or y in self.h and x==self.start or y in self.h and x==self.start+self.square_size:
+                #if not ny.any(population_code[x,y,:])==0:
+                if x in ny.arange(self.start, self.start+self.square_size+1) and y in self.r \
+                or x in self.r and y in ny.arange(self.start, self.start+self.square_size+1):
 
                    multiple=ny.multiply(population_code[x,y,:],ny.transpose(self.vec))
                    x1=ny.sum(multiple[0,:])
                    y1=ny.sum(multiple[1,:])
 
                    if self.all:
+                       #Q=pp.quiver(x,y,x1,y1, headwidth=2, headlength=3, linewidth=0.001)
+
                        ax=pp.gca()
                        pp.axis([0,self.main_size,0, self.main_size])
                        ax.add_patch(fap((x,y),((x+(self.square_size/4)*x1/ny.sqrt(x1**2+y1**2)),((y+(self.square_size/4)*y1/ny.sqrt(x1**2+y1**2)))), arrowstyle='->',linewidth=0.5,mutation_scale=10))
@@ -86,6 +92,38 @@ class Population(object):
                        elif (x,y)==(self.start + (self.square_size/2), self.start + self.square_size):
                            h_v_edges[1]=x3*180/ny.pi
         return h_v_edges
+
+
+    def move_pop(self, population_code, delta_t):
+        population_code_new=ny.zeros_like(population_code)
+        A=ny.zeros((self.main_size,self.main_size,1))
+        B=ny.zeros((self.main_size,self.main_size,1))
+        i=0
+        for x in ny.arange(0.0,self.main_size):
+            for y in ny.arange(0.0,self.main_size):
+                #weight=ny.multiply(population_code[x,y,:],delta_t)
+               # if (x,y)==(self.start,self.start):
+               #     print population_code[x,y,:],x,y
+                multiple=ny.multiply(population_code[x,y,:],ny.transpose(self.vec))
+                a=ny.sum(multiple[0,:])
+                b=ny.sum(multiple[1,:])
+                #if not ny.any(population_code[x,y,:])==0 and ((x+(a*delta_t))<=self.main_size,(y+(b*delta_t))<=self.main_size)==(True, True):
+                #    population_code_new[x+(a*delta_t),y+(b*delta_t),:]=population_code[x,y,:]
+                A[x,y,:]=a
+                B[x,y,:]=b
+                if a and b !=0:
+                    i+=1
+
+        a1=ny.sum(A)*delta_t/i
+        b1=ny.sum(B)*delta_t/i
+
+        #print a1,b1
+        for x in ny.arange(0.0,self.main_size):
+            for y in ny.arange(0.0,self.main_size):
+                if not ny.any(population_code[x,y,:])==0 and ((x+a1)<=self.main_size,(y+b1)<=self.main_size)==(True, True):
+                   population_code_new[x+a1,y+b1,:]=population_code[x,y,:]
+        return population_code_new
+
 
 
 

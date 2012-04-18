@@ -14,6 +14,7 @@ class N(object):
         """
         mu IS WHERE THE MAXIMUM IS LOCATED, SIGMA SQUARED IS THE WIDTH AND A IS THE AMPLITUDE
         """
+        self.sigma=sigma
         self.y=ny.zeros(361.0)
         self.x2=ny.arange( 0.0, 361.0, 1)
         for x in self.x2:
@@ -31,6 +32,7 @@ class N(object):
         pp.xlim(0,360)
         pp.xlabel('Spatial orientation in degree')
         pp.ylabel('Amplitude of neuronal activation')
+
 
 
 if __name__ == '__main__':

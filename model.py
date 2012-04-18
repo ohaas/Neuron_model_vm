@@ -6,14 +6,21 @@ import pop_code as pc
 from matplotlib.mlab import bivariate_normal
 from scipy.signal import convolve2d
 import ConfigParser as cp
+import neuron
+from mpl_toolkits.mplot3d import Axes3D
+from matplotlib import cm
+from matplotlib.ticker import LinearLocator, FormatStrFormatter
 
-def get_gauss_kernel(sigma, size=7, res=0.5):
+
+def get_gauss_kernel(sigma, size, res):
     """
     return a two dimesional gausian kernel of shape (size*(1/resolution),size*(1/resolution))
     with a std deviation of std
     """
     x,y = ny.mgrid[-size/2:size/2:res,-size/2:size/2:res]
-    return bivariate_normal(x, y, sigma, sigma)
+    b=bivariate_normal(x,y,sigma,sigma)
+    A=(1/ny.max(b))
+    return x,y,A*bivariate_normal(x, y, sigma, sigma)
 
 class Stage(object):
     def __init__(self, Gx, C):
@@ -67,31 +74,28 @@ class Model(object):
         self.gauss_width = cfg.getfloat('PopCode', 'neuron_sigma')
 
         v1_C = cfg.getint('V1', 'C')
-        mt_kernel_sigma =  cfg.getfloat('MT', 'kernel_sigma')
-        mt_kernel_size =  cfg.getfloat('MT', 'kernel_size')
-        mt_kernel_res =  cfg.getfloat('MT', 'kernel_res')
+        self.mt_kernel_sigma =  cfg.getfloat('MT', 'kernel_sigma')
+        self.mt_kernel_size =  cfg.getfloat('MT', 'kernel_size')
+        self.mt_kernel_res =  cfg.getfloat('MT', 'kernel_res')
 
-        self.mt_gauss = get_gauss_kernel(mt_kernel_sigma, mt_kernel_size, mt_kernel_res)
+        self.x,self.y,self.mt_gauss = get_gauss_kernel(self.mt_kernel_sigma, self.mt_kernel_size, self.mt_kernel_res)
 
         self.V1 = Stage([], v1_C)
         self.MT = Stage(self.mt_gauss, 0)
 
 
-    def show_mt_gauss(self):
-        pp.figure(1)
-        pp.imshow(self.mt_gauss, interpolation='nearest')
-
     def create_input(self):
         """
         definition of initial population codes for different time steps (is always the same one!!!)
         """
-        I = ny.zeros((self.main_size, self.main_size, 8, self.time_frames+1))
+        I = ny.zeros((self.main_size, self.main_size, 8, self.time_frames))
         cur_frame = self.start
-        for i in ny.arange(0, self.time_frames+1):
+        for i in ny.arange(0, self.time_frames):
             j = pc.Population(self.main_size, self.square_size, cur_frame, self.gauss_width)
             I[:,:,:,i] = j.initial_pop_code()
             cur_frame += self.delta_t
             #j.show_vectors(I[:,:,:,i])
+
         return I
 
 
@@ -99,21 +103,24 @@ class Model(object):
         self.input = self.create_input()
 
         X = ny.zeros((self.main_size, self.main_size, 8, self.time_frames+1))
+        FB=ny.zeros((self.main_size, self.main_size, 8, self.time_frames+1))
         X[:,:,:, 0] = self.input[:,:,:,0]
 
-        fb = 0
+
         for d_t in ny.arange(1, self.time_frames+1):
 
             inp = self.input[:,:,:,d_t-1]
-            v1 = self.V1.do_all(inp, fb)
+            v1 = self.V1.do_all(inp, FB[:,:,:,d_t-1])
             mt = self.MT.do_all(v1, 0)
             X[:,:,:, d_t] = mt
 
 
             if self.do_feedback:
-                fb = mt # new feedback is old output
+                pop = pc.Population(self.main_size, self.square_size, self.start, self.gauss_width)
+                FB[:,:,:,d_t] = pop.move_pop(mt, self.delta_t)
 
-        return X
+
+        return X,FB
 
 
     def integrated_motion_direction(self):
@@ -121,41 +128,48 @@ class Model(object):
         #fig = pp.figure()
         h_v_edges = ny.zeros((self.time_frames+1,2))
         self.cur_frame = self.start
-        X = self.run_model_full ()
+        X,FB = self.run_model_full ()
 
         for i in ny.arange(0,self.time_frames+1):
 
+
+
             pop = pc.Population(self.main_size, self.square_size, self.cur_frame, self.gauss_width)
-            pp.figure(1)
-            pp.imshow(self.mt_gauss, interpolation='nearest')
-            pp.xlabel('Pixel')
-            pp.ylabel('Pixel')
-           # pp.suptitle('Spatial Kernel with sigma = %d, size= %d and resolution = %d' %)
 
             if i>0:
-                pp.figure(2)
+                pp.figure(3)
                 pop.show_vectors(self.input[:,:,:,i-1])
                 pp.xlabel('Pixel')
                 pp.ylabel('Pixel')
-                pp.suptitle('Model input population code')
-                pp.figure(3)
+                pp.title('Model input population code for spatial kernel values:\n sigma=%.2f, size=%.2f, res=%.2f and neuron kernel sigma=%.2f'\
+                % (self.mt_kernel_sigma, self.mt_kernel_size, self.mt_kernel_res, self.gauss_width) )
+                pp.figure(4)
                 pop.show_vectors(X[:,:,:,i])
                 pp.xlabel('Pixel')
                 pp.ylabel('Pixel')
-                pp.suptitle('Model output population code')
-
+                pp.title('Model output population code for spatial kernel values:\n sigma=%.2f, size=%.2f, res=%.2f and neuron kernel sigma=%.2f'\
+                % (self.mt_kernel_sigma, self.mt_kernel_size, self.mt_kernel_res, self.gauss_width) )
+                pp.figure(5)
+                if i<self.time_frames:
+                    pop.show_vectors(FB[:,:,:,i])
+                    pp.xlabel('Pixel')
+                    pp.ylabel('Pixel')
+                    pp.title('Model feedback population code for spatial kernel values:\n sigma=%.2f, size=%.2f, res=%.2f and neuron kernel sigma=%.2f'\
+                    % (self.mt_kernel_sigma, self.mt_kernel_size, self.mt_kernel_res, self.gauss_width) )
+                pop.I.pic()
             else:
-                pp.figure(2)
+                pp.figure(3)
                 pop.show_vectors(self.input[:,:,:,i])
                 pp.xlabel('Pixel')
                 pp.ylabel('Pixel')
-                pp.suptitle('Model input population code')
+                pp.title('Model input population code for spatial kernel values:\n sigma=%.2f, size=%.2f, res=%.2f and neuron kernel sigma=%.2f'\
+                % (self.mt_kernel_sigma, self.mt_kernel_size, self.mt_kernel_res, self.gauss_width) )
 
             h_v_edges[i,:]= pop.show_vectors(X[:,:,:,i],all=False)
-            pp.figure(4)
+            pp.figure(6)
             pp.plot(i, h_v_edges[i,0],'ko', markerfacecolor='None')
             pp.plot(i, h_v_edges[i,1],'k*')
-            print h_v_edges[i,0],h_v_edges[i,1]
+            print i, h_v_edges[i,0],h_v_edges[i,1]
 
             if i>0:
                 self.cur_frame += self.delta_t
@@ -167,13 +181,36 @@ class Model(object):
         pp.ylim(-1,91)
         pp.xlabel('Time steps (cycles through the model)')
         pp.ylabel('Direction (degree)')
-        pp.suptitle('Integrated motion direction')
+        pp.suptitle('Integrated motion direction for spatial kernel %s=%.2f, size=%.2f, res=%.2f, neuron kernel:\n %s=%.2f & stimulus values in pixel: size=%ix%i, square=%ix%i, velocity=%i'
+        % (u"\u03C3", self.mt_kernel_sigma, self.mt_kernel_size, self.mt_kernel_res, u"\u03C3", self.gauss_width, self.main_size, self.main_size, self.square_size, self.square_size, ny.sqrt(2*(self.delta_t**2))) )
+
+        angle = ny.arange(0.0, 360, 45.0)
+        neurons = [neuron.N(degree, self.gauss_width) for degree in angle]
+        for i in ny.arange(0,len(angle)):
+            pp.figure(1)
+            neurons[i].plot_act()
+        pp.xlabel('Spacial orientation in degree with neuron sigma=%.2f' %self.gauss_width)
+        pp.title('Neuronal tuning curves')
+
+        fig=pp.figure(2)
+        ax = fig.gca(projection='3d')
+        surf=ax.plot_surface(self.x,self.y,self.mt_gauss, rstride=1, cstride=1, cmap=cm.jet, linewidth=0, antialiased=False)
+        #pp.imshow(self.mt_gauss, interpolation='nearest')
+        pp.xlabel('Pixel')
+        pp.ylabel('Pixel')
+        pp.title('Spatial Kernel with sigma=%.2f, size=%.2f, res=%.2f' % (self.mt_kernel_sigma, self.mt_kernel_size, self.mt_kernel_res))
+        ax.set_zlim(ny.min(self.mt_gauss), ny.max(self.mt_gauss))
+        ax.zaxis.set_major_locator(LinearLocator(10))
+        ax.zaxis.set_major_formatter(FormatStrFormatter('%.02f'))
+
+        pp.colorbar(surf, shrink=0.5, aspect=5)
 
 if __name__ == '__main__':
 
-    M = Model('model.cfg', feedback=False) # feedback=True
+    M = Model('model.cfg') # feedback=True
     #M.show_mt_gauss()
     M.integrated_motion_direction()
+
     #M.run_model_full()
     pp.show()
 
