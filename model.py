@@ -20,7 +20,12 @@ def get_gauss_kernel(sigma, size, res):
     x,y = ny.mgrid[-size/2:size/2:res,-size/2:size/2:res]
     b=bivariate_normal(x,y,sigma,sigma)
     A=(1/ny.max(b))
+    #A=1
     return x,y,A*bivariate_normal(x, y, sigma, sigma)
+
+def gauss(sigma=0.75, x=ny.arange( 0.0, 8.0, 1), mu=0):
+    return ny.exp(-(x-mu)**2/(2.0*sigma**2))
+g=gauss()+gauss(mu=8)
 
 class Stage(object):
     def __init__(self, Gx, C):
@@ -45,7 +50,9 @@ class Stage(object):
         return v2_t
 
     def do_v3(self, v2_t):
-        v3_t = (v2_t - (0.5*v2_t))/(0.01+v2_t)
+        top=(v2_t-(v2_t/2))
+        bottom=(1.01+v2_t)
+        v3_t = top/bottom
         return v3_t
 
     def do_all(self, net_in, net_fb):

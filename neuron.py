@@ -18,7 +18,7 @@ class N(object):
         self.y=ny.zeros(361.0)
         self.x2=ny.arange( 0.0, 361.0, 1)
         for x in self.x2:
-            self.y[x]= A*(gauss(x, mu, sigma) + gauss(x, mu-360, sigma) + gauss(x, mu+360, sigma))
+            self.y[x]= A*(gauss(x, mu, sigma) + A*gauss(x, mu-360, sigma) + A*gauss(x, mu+360, sigma))
 
     def activity(self, x1):
         """

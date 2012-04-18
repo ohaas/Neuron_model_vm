@@ -95,34 +95,38 @@ class Population(object):
 
 
     def move_pop(self, population_code, delta_t):
+
         population_code_new=ny.zeros_like(population_code)
-        A=ny.zeros((self.main_size,self.main_size,1))
-        B=ny.zeros((self.main_size,self.main_size,1))
-        i=0
+
+#        A=ny.zeros((self.main_size,self.main_size,1))
+#        B=ny.zeros((self.main_size,self.main_size,1))
+#        i=0
         for x in ny.arange(0.0,self.main_size):
             for y in ny.arange(0.0,self.main_size):
-                #weight=ny.multiply(population_code[x,y,:],delta_t)
-               # if (x,y)==(self.start,self.start):
-               #     print population_code[x,y,:],x,y
-                multiple=ny.multiply(population_code[x,y,:],ny.transpose(self.vec))
-                a=ny.sum(multiple[0,:])
-                b=ny.sum(multiple[1,:])
-                #if not ny.any(population_code[x,y,:])==0 and ((x+(a*delta_t))<=self.main_size,(y+(b*delta_t))<=self.main_size)==(True, True):
-                #    population_code_new[x+(a*delta_t),y+(b*delta_t),:]=population_code[x,y,:]
-                A[x,y,:]=a
-                B[x,y,:]=b
-                if a and b !=0:
-                    i+=1
+                if not ny.any(population_code[x,y,:])==0 and ((x+delta_t)<self.main_size,(y+delta_t)<self.main_size)==(True, True):
+                    population_code_new[x+delta_t,y+delta_t,:]=population_code[x,y,:]
 
-        a1=ny.sum(A)*delta_t/i
-        b1=ny.sum(B)*delta_t/i
-
-        #print a1,b1
-        for x in ny.arange(0.0,self.main_size):
-            for y in ny.arange(0.0,self.main_size):
-                if not ny.any(population_code[x,y,:])==0 and ((x+a1)<=self.main_size,(y+b1)<=self.main_size)==(True, True):
-                   population_code_new[x+a1,y+b1,:]=population_code[x,y,:]
         return population_code_new
+#                weight=ny.multiply(population_code[x,y,:],delta_t)
+#                if (x,y)==(self.start,self.start):
+#                    print population_code[x,y,:],x,y
+#                multiple=ny.multiply(population_code[x,y,:],ny.transpose(self.vec))
+#                a=ny.sum(multiple[0,:])
+#                b=ny.sum(multiple[1,:])
+#                #if not ny.any(population_code[x,y,:])==0 and ((x+(a*delta_t))<=self.main_size,(y+(b*delta_t))<=self.main_size)==(True, True):
+#                #    population_code_new[x+(a*delta_t),y+(b*delta_t),:]=population_code[x,y,:]
+#                A[x,y,:]=a
+#                B[x,y,:]=b
+#                if a and b !=0:
+#                    i+=1
+#
+#        a1=ny.sum(A)*delta_t/i
+#        b1=ny.sum(B)*delta_t/i
+#
+#        print a1,b1
+#        for x in ny.arange(0.0,self.main_size):
+#            for y in ny.arange(0.0,self.main_size):
+
 
 
 
