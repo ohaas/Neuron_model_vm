@@ -50,10 +50,27 @@ class Stage(object):
         return v2_t
 
     def do_v3(self, v2_t):
-        top=(v2_t-(v2_t/2))
-        bottom=(1.01+v2_t)
-        v3_t = top/bottom
-        return v3_t
+
+         s=v2_t.shape
+         r=ny.reshape(v2_t,(s[0]*s[1],s[2]))
+         m=ny.mean(r,axis=0)
+         c=ny.array((0.47730912256773905, 1.0, 0.47730912256773905, 0.051903774289058222, 0.0012858809606739489, 1.4515291236951916e-05, 0.0012858809606739489, 0.051903774289058222))
+         M=ny.zeros_like(v2_t)
+         n=0
+         for x in ny.arange(0.0,s[0]):
+             for y in ny.arange(0.0,s[0]):
+                 if not ny.any(v2_t[x,y,:])==0:
+                     M[x,y,:]=m #mean velocity is largest at 45degree (estimation of model stage)
+#                     n+=1
+
+#         M1=M*(s[0])/(2*n) # mean taken over only not zero places
+
+         v3_t=ny.divide(v2_t*c,0.01+ny.max(v2_t)) #since we assume we know the moving direction, we emphasize signals in the right direction
+         # and weaken signals in the wrong direction. This is done in a gaussian fashion by c. If we wouldnt know the correct motion direction
+         # we would have to scann the code for excitation of different velocities and therefore find step by step the correct one (less rapid converging to 45degree)
+
+         #v3_t=ny.divide(v2_t-(v2_t*M1),0.01+(v2_t*M1))
+         return v3_t
 
     def do_all(self, net_in, net_fb):
         v1_t = self.do_v1(net_in, net_fb)
