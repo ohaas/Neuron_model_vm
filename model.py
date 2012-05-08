@@ -10,7 +10,7 @@ import neuron
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
 from matplotlib.ticker import LinearLocator, FormatStrFormatter
-
+import math
 
 def get_gauss_kernel(sigma, size, res):
     """
@@ -161,46 +161,68 @@ class Model(object):
             pop = pc.Population(self.main_size, self.square_size, self.cur_frame, self.gauss_width)
 
             if i>0:
+                stimulus=ny.zeros_like(self.input[:,:,:,i-1])
                 pp.figure(3)
+                pop.show_vectors(stimulus)
+                pp.xlabel('Pixel')
+                pp.ylabel('Pixel')
+                pp.title('Stimulus with picture size %.2f,\n square size %.2f and time step size %s t=%.2f in pixel.'\
+                % (self.main_size, self.square_size, u'\u0394', self.delta_t) )
+
+                pp.figure(4)
                 pop.show_vectors(self.input[:,:,:,i-1])
                 pp.xlabel('Pixel')
                 pp.ylabel('Pixel')
-                pp.title('Model input population code for spatial kernel values:\n sigma=%.2f, size=%.2f, res=%.2f and neuron kernel sigma=%.2f'\
-                % (self.mt_kernel_sigma, self.mt_kernel_size, self.mt_kernel_res, self.gauss_width) )
-                pp.figure(4)
+                pp.title('Model input population code for spatial kernel values:\n %s=%.2f, size=%.2f, res=%.2f and neuron kernel %s=%.2f'\
+                %  (u"\u03C3",self.mt_kernel_sigma, self.mt_kernel_size, self.mt_kernel_res,u"\u03C3", self.gauss_width))
+                pp.figure(5)
                 pop.show_vectors(X[:,:,:,i])
                 pp.xlabel('Pixel')
                 pp.ylabel('Pixel')
-                pp.title('Model output population code for spatial kernel values:\n sigma=%.2f, size=%.2f, res=%.2f and neuron kernel sigma=%.2f'\
-                % (self.mt_kernel_sigma, self.mt_kernel_size, self.mt_kernel_res, self.gauss_width) )
-                pp.figure(5)
-                if i<self.time_frames:
-                    pop.show_vectors(FB[:,:,:,i])
-                    pp.xlabel('Pixel')
-                    pp.ylabel('Pixel')
-                    pp.title('Model feedback population code for spatial kernel values:\n sigma=%.2f, size=%.2f, res=%.2f and neuron kernel sigma=%.2f'\
-                    % (self.mt_kernel_sigma, self.mt_kernel_size, self.mt_kernel_res, self.gauss_width) )
+                pp.title('Model output population code for spatial kernel values:\n %s=%.2f, size=%.2f, res=%.2f and neuron kernel %s=%.2f'\
+                % (u"\u03C3",self.mt_kernel_sigma, self.mt_kernel_size, self.mt_kernel_res,u"\u03C3", self.gauss_width) )
+                pp.figure(6)
+                pop.show_vectors(FB[:,:,:,i-1])
+                pp.xlabel('Pixel')
+                pp.ylabel('Pixel')
+                pp.title('Model feedback population code for spatial kernel values:\n %s=%.2f, size=%.2f, res=%.2f and neuron kernel %s=%.2f'\
+                %  (u"\u03C3",self.mt_kernel_sigma, self.mt_kernel_size, self.mt_kernel_res,u"\u03C3", self.gauss_width))
                 pop.I.pic()
+
+                pp.figure(7)
+                pop.plot_pop(X[:,:,:,i],self.time_frames,i)
+
+                self.cur_frame += self.delta_t
             else:
-                pp.figure(3)
+                pp.figure(7)
+                pop.plot_pop(X[:,:,:,i],self.time_frames,i)
+                pp.figure(4)
                 pop.show_vectors(self.input[:,:,:,i])
                 pp.xlabel('Pixel')
                 pp.ylabel('Pixel')
-                pp.title('Model input population code for spatial kernel values:\n sigma=%.2f, size=%.2f, res=%.2f and neuron kernel sigma=%.2f'\
-                % (self.mt_kernel_sigma, self.mt_kernel_size, self.mt_kernel_res, self.gauss_width) )
+                pp.title('Model input population code for spatial kernel values:\n %s=%.2f, size=%.2f, res=%.2f and neuron kernel %s=%.2f'\
+                % (u"\u03C3",self.mt_kernel_sigma, self.mt_kernel_size, self.mt_kernel_res,u"\u03C3", self.gauss_width) )
 
             h_v_edges[i,:]= pop.show_vectors(X[:,:,:,i],all=False)
-            pp.figure(6)
+            pp.figure(8)
             pp.plot(i, h_v_edges[i,0],'ko', markerfacecolor='None')
             pp.plot(i, h_v_edges[i,1],'k*')
+            ax = pp.subplot(111)
+            if i==self.time_frames:
+                ax.plot(i, h_v_edges[i,0],'ko', markerfacecolor='None', label='Measured at midpoint of horizontal edges')
+                ax.plot(i, h_v_edges[i,1],'k*', label='Measured at midpoint of vertical edges')
+                x=ny.arange(-0.2,self.time_frames+1)
+                y=0*x+45
+                ax.plot(x,y, label='True motion direction')
+                # Shink current axis's height by 10% on the bottom
+                box = ax.get_position()
+                ax.set_position([box.x0, box.y0 + box.height * 0.2, box.width, box.height * 0.8])
+            # Put a legend below current axis
+            ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.13), fancybox=True, shadow=True, ncol=1)
             print i, h_v_edges[i,0],h_v_edges[i,1]
 
-            if i>0:
-                self.cur_frame += self.delta_t
 
-        x=ny.arange(-0.2,self.time_frames+1)
-        y=0*x+45
-        pp.plot(x,y)
+
         pp.xlim(-0.2,self.time_frames+0.2)
         pp.ylim(-1,91)
         pp.xlabel('Time steps (cycles through the model)')
@@ -208,21 +230,17 @@ class Model(object):
         pp.suptitle('Integrated motion direction for spatial kernel %s=%.2f, size=%.2f, res=%.2f, neuron kernel:\n %s=%.2f & stimulus values in pixel: size=%ix%i, square=%ix%i, velocity=%i'
         % (u"\u03C3", self.mt_kernel_sigma, self.mt_kernel_size, self.mt_kernel_res, u"\u03C3", self.gauss_width, self.main_size, self.main_size, self.square_size, self.square_size, ny.sqrt(2*(self.delta_t**2))) )
 
-        angle = ny.arange(0.0, 360, 45.0)
-        neurons = [neuron.N(degree, self.gauss_width) for degree in angle]
-        for i in ny.arange(0,len(angle)):
-            pp.figure(1)
-            neurons[i].plot_act()
-        pp.xlabel('Spacial orientation in degree with neuron sigma=%.2f' %self.gauss_width)
-        pp.title('Neuronal tuning curves')
+        pp.figure(1)
+        Neuron=neuron.N(self.gauss_width)
+        Neuron.plot_act()
+
 
         fig=pp.figure(2)
         ax = fig.gca(projection='3d')
         surf=ax.plot_surface(self.x,self.y,self.mt_gauss, rstride=1, cstride=1, cmap=cm.jet, linewidth=0, antialiased=False)
-        #pp.imshow(self.mt_gauss, interpolation='nearest')
         pp.xlabel('Pixel')
         pp.ylabel('Pixel')
-        pp.title('Spatial Kernel with sigma=%.2f, size=%.2f, res=%.2f' % (self.mt_kernel_sigma, self.mt_kernel_size, self.mt_kernel_res))
+        pp.title('Spatial Kernel with %s=%.2f, size=%.2f, res=%.2f' % (u"\u03C3",self.mt_kernel_sigma, self.mt_kernel_size, self.mt_kernel_res))
         ax.set_zlim(ny.min(self.mt_gauss), ny.max(self.mt_gauss))
         ax.zaxis.set_major_locator(LinearLocator(10))
         ax.zaxis.set_major_formatter(FormatStrFormatter('%.02f'))
